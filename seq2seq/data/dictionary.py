@@ -68,10 +68,11 @@ class Dictionary(object):
     @classmethod
     def load(cls, filename):
         """Loads the dictionary from a text file"""
+        import re
         with open(filename, encoding='utf-8') as f:
             dictionary = cls()
             for line in f.readlines():
-                word, count = line.rstrip().rsplit(' ', 1)
+                word, count = re.split(r'\s+', line.rstrip())
                 dictionary.word2idx[word] = len(dictionary.words)
                 dictionary.words.append(word)
                 dictionary.counts.append(int(count))

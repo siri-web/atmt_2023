@@ -15,8 +15,8 @@ tgt_lang=$3
 scripts=`dirname "$(readlink -f "$0")"`
 base=$scripts/..
 moses_scripts=$base/moses_scripts
-preprocessed=$raw_data/../preprocessed
-prepared=$raw_data/../prepared
+preprocessed=$raw_data/../preprocessed_bpe
+prepared=$raw_data/../prepared_bpe
 
 mkdir -p $preprocessed
 mkdir -p $prepared
