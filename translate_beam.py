@@ -32,6 +32,9 @@ def get_args():
     parser.add_argument('--beam-size', default=5, type=int, help='number of hypotheses expanded in beam search')
     # alpha hyperparameter for length normalization (described as lp in https://arxiv.org/pdf/1609.08144.pdf equation 14)
     parser.add_argument('--alpha', default=0.0, type=float, help='alpha for softer length normalization')
+    parser.add_argument('--alpha-square', default=0, type=float, help='alpha for square regulization')
+    parser.add_argument('--n-best', default=3, type=int, help='number of how many hypotesis per input sentence should be outputted')
+    parser.add_argument('--gamma', default=0, type=int, help='penalty for nodes coming from the same parent for diverse beam search')
 
     return parser.parse_args()
 
@@ -177,7 +180,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp, node.length
                             )
-                        search.add_final(-node.eval(args.alpha), node)
+                        search.add_final(-node.eval(j + 1, args.gamma, args.alpha, args.alpha_square), node)
 
                     # Add the node to current nodes for next iteration
                     else:
@@ -186,7 +189,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp + log_p, node.length + 1
                             )
-                        search.add(-node.eval(args.alpha), node)
+                        search.add(-node.eval(j + 1, args.gamma, args.alpha, args.alpha_square), node)
 
             # #import pdb;pdb.set_trace()
             # __QUESTION 5: What happens internally when we prune our beams?
@@ -195,34 +198,54 @@ def main(args):
                 search.prune()
 
         # Segment into sentences
-        best_sents = torch.stack([search.get_best()[1].sequence[1:].cpu() for search in searches])
+        best_sents = [search.get_best(args.n_best) for search in searches]
+        temp = []
+        for results in best_sents:
+            temp_group = []
+            for node in results:
+                temp_group.append(node[1].sequence[1:].cpu())
+            temp.append(torch.stack(temp_group))
+        best_sents = torch.stack(temp)
+        #best_sents = torch.stack([search.get_best(args.n_best)[1].sequence[1:].cpu() for search in searches])
         decoded_batch = best_sents.numpy()
         #import pdb;pdb.set_trace()
 
-        output_sentences = [decoded_batch[row, :] for row in range(decoded_batch.shape[0])]
+        output_sentences = [decoded_batch[row, :, :] for row in range(decoded_batch.shape[0])]
 
         # __QUESTION 6: What is the purpose of this for loop?
         temp = list()
-        for sent in output_sentences:
-            first_eos = np.where(sent == tgt_dict.eos_idx)[0]
-            if len(first_eos) > 0:
-                temp.append(sent[:first_eos[0]])
-            else:
-                temp.append(sent)
+        for sent_group in output_sentences:
+            temp_group = []
+            for sent in sent_group:
+                first_eos = np.where(sent == tgt_dict.eos_idx)[0]
+                if len(first_eos) > 0:
+                    temp_group.append(sent[:first_eos[0]])
+                else:
+                    temp_group.append(sent)
+            temp.append(temp_group)
         output_sentences = temp
 
         # Convert arrays of indices into strings of words
-        output_sentences = [tgt_dict.string(sent) for sent in output_sentences]
+        temp = []
+        for sent_group in output_sentences:
+            temp_group = []
+            for sent in sent_group:
+                temp_group.append(tgt_dict.string(sent))
+            temp.append(temp_group)
+        output_sentences = temp
+        #output_sentences = [tgt_dict.string(sent) for sent in output_sentences]
 
-        for ii, sent in enumerate(output_sentences):
-            all_hyps[int(sample['id'].data[ii])] = sent
+        for ii, sent_group in enumerate(output_sentences):
+            all_hyps[int(sample['id'].data[ii])] = sent_group
 
 
     # Write to file
     if args.output is not None:
         with open(args.output, 'w') as out_file:
-            for sent_id in range(len(all_hyps.keys())):
-                out_file.write(all_hyps[sent_id] + '\n')
+            for sent_group_id in range(len(all_hyps.keys())):
+                for sent in all_hyps[sent_group_id]:
+                    out_file.write(sent + '\n')
+                out_file.write('\n')
 
 
 if __name__ == '__main__':

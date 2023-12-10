@@ -36,11 +36,12 @@ class BeamSearch(object):
             nodes.append((node[0], node[2]))
         return nodes
 
-    def get_best(self):
+    def get_best(self, n_best):
         """ Returns final node with the lowest negative log probability """
         # Merge EOS paths and those that were stopped by
         # max sequence length (still in nodes)
         merged = PriorityQueue()
+        nodes = []
         for _ in range(self.final.qsize()):
             node = self.final.get()
             merged.put(node)
@@ -49,10 +50,14 @@ class BeamSearch(object):
             node = self.nodes.get()
             merged.put(node)
 
-        node = merged.get()
-        node = (node[0], node[2])
+        #node = merged.get()
+        #node = (node[0], node[2])
 
-        return node
+        for _ in range(n_best):
+            node = merged.get()
+            nodes.append((node[0], node[2]))
+
+        return nodes
 
     def prune(self):
         """ Removes all nodes but the beam_size best ones (lowest neg log prob) """
@@ -79,11 +84,12 @@ class BeamSearchNode(object):
 
         # Attributes needed for computation of sequence score
         self.logp = logProb
+        self.rho = 0
         self.length = length
 
         self.search = search
 
-    def eval(self, alpha=0.0):
+    def eval(self, descendant_position, gamma=0, alpha=0.0, alpha_square=0.5):
         """ Returns score of sequence up to this node 
 
         params: 
@@ -94,5 +100,8 @@ class BeamSearchNode(object):
         
         """
         normalizer = (5 + self.length)**alpha / (5 + 1)**alpha
-        return self.logp / normalizer
+        self.rho += self.logp**2
+        score = self.logp - alpha_square * self.rho - gamma * descendant_position
+
+        return score / normalizer
         
