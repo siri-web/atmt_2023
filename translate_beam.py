@@ -123,7 +123,7 @@ def main(args):
                 node = BeamSearchNode(searches[i], emb, lstm_out, final_hidden, final_cell,
                                       mask, torch.cat((go_slice[i], next_word)), log_p, 1)
                 # __QUESTION 3: Why do we add the node with a negative score?
-                searches[i].add(-node.eval(args.alpha), node)
+                searches[i].add(-node.eval(j + 1, 0, args.alpha, args.alpha_square), node)
 
         #import pdb;pdb.set_trace()
         # Start generating further tokens until max sentence length reached
@@ -245,7 +245,8 @@ def main(args):
             for sent_group_id in range(len(all_hyps.keys())):
                 for sent in all_hyps[sent_group_id]:
                     out_file.write(sent + '\n')
-                out_file.write('\n')
+                if len(all_hyps[sent_group_id]) > 1:
+                    out_file.write('\n')
 
 
 if __name__ == '__main__':
