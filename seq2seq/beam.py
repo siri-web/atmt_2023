@@ -54,7 +54,7 @@ class BeamSearch(object):
         #node = (node[0], node[2])
 
         for _ in range(n_best):
-            
+            node = merged.get()
             nodes.append((node[0], node[2]))
 
         return nodes
