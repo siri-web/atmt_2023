@@ -123,7 +123,7 @@ def main(args):
                 node = BeamSearchNode(searches[i], emb, lstm_out, final_hidden, final_cell,
                                       mask, torch.cat((go_slice[i], next_word)), log_p, 1)
                 # __QUESTION 3: Why do we add the node with a negative score?
-                searches[i].add(-node.eval(j + 1, 0, args.alpha, args.alpha_square), node)
+                searches[i].add(-node.eval(j + 1, True, 0, args.alpha, args.alpha_square), node)
 
         #import pdb;pdb.set_trace()
         # Start generating further tokens until max sentence length reached
@@ -180,7 +180,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp, node.length
                             )
-                        search.add_final(-node.eval(j + 1, args.gamma, args.alpha, args.alpha_square), node)
+                        search.add_final(-node.eval(j + 1, False, args.gamma, args.alpha, args.alpha_square), node)
 
                     # Add the node to current nodes for next iteration
                     else:
@@ -189,7 +189,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp + log_p, node.length + 1
                             )
-                        search.add(-node.eval(j + 1, args.gamma, args.alpha, args.alpha_square), node)
+                        search.add(-node.eval(j + 1, True, args.gamma, args.alpha, args.alpha_square), node)
 
             # #import pdb;pdb.set_trace()
             # __QUESTION 5: What happens internally when we prune our beams?

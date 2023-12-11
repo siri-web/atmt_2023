@@ -54,7 +54,7 @@ class BeamSearch(object):
         #node = (node[0], node[2])
 
         for _ in range(n_best):
-            node = merged.get()
+            
             nodes.append((node[0], node[2]))
 
         return nodes
@@ -89,7 +89,7 @@ class BeamSearchNode(object):
 
         self.search = search
 
-    def eval(self, descendant_position, gamma=0, alpha=0.0, alpha_square=0.5):
+    def eval(self, descendant_position, new_logp=True, gamma=0, alpha=0.0, alpha_square=0.5):
         """ Returns score of sequence up to this node 
 
         params: 
@@ -100,7 +100,8 @@ class BeamSearchNode(object):
         
         """
         normalizer = (5 + self.length)**alpha / (5 + 1)**alpha
-        self.rho += self.logp**2
+        if new_logp:
+            self.rho += self.logp**2
         score = self.logp - alpha_square * self.rho - gamma * descendant_position
 
         return score / normalizer
