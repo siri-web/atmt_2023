@@ -86,6 +86,7 @@ class BeamSearchNode(object):
         self.logp = logProb
         self.rho = 0
         self.length = length
+        self.descendant_position = 0
 
         self.search = search
 
@@ -102,6 +103,7 @@ class BeamSearchNode(object):
         normalizer = (5 + self.length)**alpha / (5 + 1)**alpha
         if new_logp:
             self.rho += self.logp**2
+        self.descendant_position += descendant_position
         score = self.logp - alpha_square * self.rho - gamma * descendant_position
 
         return score / normalizer
