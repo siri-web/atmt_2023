@@ -34,7 +34,7 @@ def get_args():
     parser.add_argument('--alpha', default=0.0, type=float, help='alpha for softer length normalization')
     parser.add_argument('--alpha-square', default=0, type=float, help='alpha for square regulization')
     parser.add_argument('--n-best', default=3, type=int, help='number of how many hypotesis per input sentence should be outputted')
-    parser.add_argument('--gamma', default=0, type=int, help='penalty for nodes coming from the same parent for diverse beam search')
+    parser.add_argument('--gamma', default=0, type=float, help='penalty for nodes coming from the same parent for diverse beam search')
 
     return parser.parse_args()
 
@@ -123,7 +123,7 @@ def main(args):
                 node = BeamSearchNode(searches[i], emb, lstm_out, final_hidden, final_cell,
                                       mask, torch.cat((go_slice[i], next_word)), log_p, 1)
                 # __QUESTION 3: Why do we add the node with a negative score?
-                searches[i].add(-node.eval(j + 1, True, 0, args.alpha, args.alpha_square), node)
+                searches[i].add(-node.eval(0, True, 0, args.alpha, args.alpha_square), node)
 
         #import pdb;pdb.set_trace()
         # Start generating further tokens until max sentence length reached
@@ -180,7 +180,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp, node.length
                             )
-                        search.add_final(-node.eval(j + 1, False, args.gamma, args.alpha, args.alpha_square), node)
+                        search.add_final(-node.eval(0, False, args.gamma, args.alpha, args.alpha_square), node)
 
                     # Add the node to current nodes for next iteration
                     else:
@@ -189,7 +189,7 @@ def main(args):
                             node.final_cell, node.mask, torch.cat((prev_words[i][0].view([1]),
                             next_word)), node.logp + log_p, node.length + 1
                             )
-                        search.add(-node.eval(j + 1, True, args.gamma, args.alpha, args.alpha_square), node)
+                        search.add(-node.eval(j, True, args.gamma, args.alpha, args.alpha_square), node)
 
             # #import pdb;pdb.set_trace()
             # __QUESTION 5: What happens internally when we prune our beams?
